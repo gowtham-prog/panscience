@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  backend:
+    build: 
+      context: ./taskManager_backend
+      dockerfile: Dockerfile
+    container_name: django_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./taskManager_backend:/app
+    env_file:
+      - taskManager_backend/.env
+
+  frontend:
+    build:
+      context: ./task_management_frontend
+      dockerfile: Dockerfile
+    container_name: react_frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./task_management_frontend:/app
+      - /app/node_modules
+    env_file:
+      - task_management_frontend/.env
+
