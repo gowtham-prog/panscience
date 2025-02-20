@@ -94,13 +94,11 @@ export default function TaskList() {
 
     return (
         <div className="space-y-6">
-            {/* Tabs for Assigned / Created */}
             <Tabs value={activeTab} onChange={(_, newTab) => setActiveTab(newTab)} indicatorColor="primary" textColor="primary">
                 <Tab label="Assigned" value="assigned" />
                 <Tab label="Created" value="created" />
             </Tabs>
 
-            {/* Header with Sorting and Status Filtering */}
             <Box className="flex justify-between items-center">
                 <Typography variant="h5" className="font-bold text-black">
                     {activeTab === "assigned" ? "Assigned Tasks" : "Created Tasks"}
@@ -139,6 +137,7 @@ export default function TaskList() {
                             <TableCell><strong>Description</strong></TableCell>
                             <TableCell><strong>Assigned To</strong></TableCell>
                             <TableCell><strong>Status</strong></TableCell>
+                            <TableCell><strong>Priority</strong></TableCell>
                             <TableCell><strong>Due Date</strong></TableCell>
                             <TableCell><strong>Actions</strong></TableCell>
                         </TableRow>
@@ -164,6 +163,12 @@ export default function TaskList() {
                                         <Chip
                                             label={task.status.replace("_", " ")}
                                             color={task.status === "completed" ? "success" : "default"}
+                                        />
+                                    </TableCell>
+                                    <TableCell>
+                                        <Chip
+                                            label={task.priority}
+                                            color={task.status === "high" ? "failure" : "default"}
                                         />
                                     </TableCell>
                                     <TableCell>

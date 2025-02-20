@@ -60,21 +60,12 @@ class UserRetrieveAPIView(RetrieveAPIView):
 
 
 class UserUpdateAPIView(UpdateAPIView):
-    permission_classes = [IsAuthenticated, ]
-    parser_classes = [MultiPartParser, FormParser] 
-    def partial_update(self, request):
-        user = request.user
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
 
-        if user:
-            serializer = UserSerializer(user, data=request.data, partial=True)
-            if serializer.is_valid():
-                serializer.save(profile_image=request.FILES.get("profile_image")) 
-                return Response(serializer.data, status=status.HTTP_200_OK)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            print("not updated")
-            return Response({'message': 'Failure! Permission denied or user not found'}, status=status.HTTP_403_FORBIDDEN)
-
+    def get_object(self):
+        return self.request.user
 
 class ListUserAPIView(ListAPIView):
     permission_classes = [IsAuthenticated,]
