@@ -1,20 +1,22 @@
 "use client"
 
-import { Button, Link, Paper, TextField, Typography } from "@mui/material"
-import Alert from '@mui/material/Alert'
-import Snackbar from '@mui/material/Snackbar'
+import { Button, Link, Paper, TextField, Typography,Snackbar,Alert } from "@mui/material"
+// import Alert from '@mui/material/Alert'
+// import Snackbar from '@mui/material/Snackbar'
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { loginUser } from "../store/AuthSlice"
 import { useNavigate,Link as RouterLink } from "react-router-dom";
+import Loader from "../components/loader";
 
 const Login = () => {
     const [credentials, setCredentials] = useState({ username: "", password: "" });
     const dispatch = useDispatch();
     const navigate = useNavigate();
-    const { error, loading } = useSelector((state) => state.auth);
+    const { state } = useSelector((state) => state.auth);
+    const [loading, setLoading] = useState(false);
 
-    const [errorMessage, setErrorMessage] = useState("");
+    const [error,setError] = useState("");
 
     const handleChange = (e) => {
         setCredentials({ ...credentials, [e.target.name]: e.target.value });
@@ -22,36 +24,29 @@ const Login = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setLoading(true)
         try {
             const resultAction = await dispatch(loginUser(credentials));
             if (loginUser.fulfilled.match(resultAction)) {
-                navigate("/task"); // Redirect to home on success
+                navigate("/"); 
             }
         } catch (err) {
+            setError("Login failed");
             console.error("Login failed:", err);
+        }finally{
+            setLoading(false)
         }
     };
+
+    if(loading){
+        return <Loader/>
+    }
 
     return (
         <div className="min-h-screen min-w-screen bg-gray-50">
             <main className="container mx-auto px-4 py-8 w-full max-w-7xl">
             <div className="max-h-screen h-full w-full flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-                <Snackbar open={error} autoHideDuration={6000} onClose={() => {
-                    setError(false)
-                    setErrorMessage("")
-                }}>
-                    <Alert
-                        onClose={() => {
-                            setError(false)
-                            setErrorMessage("")
-                        }}
-                        severity="success"
-                        variant="filled"
-                        sx={{ width: '100%' }}
-                    >
-                        {{ errorMessage }}
-                    </Alert>
-                </Snackbar>
+                
                 <Paper className=" h-full space-y-8 p-10">
                     <div>
                         <Typography component="h1" variant="h4" className="text-center font-bold">
@@ -89,8 +84,13 @@ const Login = () => {
                             </Link>
                         </div>
                     </form>
+                        <Snackbar open={!!error} autoHideDuration={4000} onClose={() => setError(null)}>
+                            <Alert severity="error">{error}</Alert>
+                        </Snackbar>
                 </Paper>
+                
             </div>
+                
             </main>
         </div>
     )

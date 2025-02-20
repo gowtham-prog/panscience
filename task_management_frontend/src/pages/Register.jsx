@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
-import { TextField, Button, Paper, Typography, Link, Avatar } from "@mui/material";
+import { TextField, Button, Paper, Typography, Link, Avatar,Snackbar,Alert } from "@mui/material";
 import axios from "axios";
-
+import Loader from "../components/loader";
 export default function Register() {
     const serverUrl = import.meta.env.VITE_SERVER_URL;
     const navigate = useNavigate();
@@ -18,6 +18,8 @@ export default function Register() {
 
     const [profileImage, setProfileImage] = useState(null);
     const [preview, setPreview] = useState(null);
+    const [error, setError] = useState("");
+    const [loading,setLoading] = useState(false);
     
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -46,16 +48,23 @@ export default function Register() {
         if (profileImage) {
             data.append("profile_image", profileImage);
         }
-
+        setLoading(true)
         try {
             await axios.post(`${serverUrl}/api/v1/user/create/`, data, {
                 headers: { "Content-Type": "multipart/form-data" },
             });
             navigate("/login");
         } catch (error) {
+            setError(error.message);
             console.error("Registration failed:", error);
+        }finally{
+            setLoading(false)
         }
     };
+
+    if(loading){
+        return <Loader/>
+    }
 
     return (
         <div className="min-h-screen min-w-screen bg-gray-50">
@@ -130,8 +139,12 @@ export default function Register() {
                                 </Link>
                             </div>
                         </form>
+                        
                     </Paper>
                 </div>
+                <Snackbar open={!!error} autoHideDuration={4000} onClose={() => setError(null)}>
+                    <Alert severity="error">{error}</Alert>
+                </Snackbar>
             </main>
         </div>
     );

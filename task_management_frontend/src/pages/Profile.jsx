@@ -1,13 +1,15 @@
 "use client"
 
-import { Avatar, Button, Paper, TextField, Typography } from "@mui/material"
+import { Avatar, Button, Paper, TextField, Typography,Snackbar,Alert } from "@mui/material"
 import axios from "axios"
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router"
+import Loader from "../components/loader"
 
 export default function Profile() {
     const serverUrl = import.meta.env.VITE_SERVER_URL
     console.log("api", serverUrl)
+    const [error, setError] = useState("")
 
     const navigate = useNavigate()
     const [profile, setProfile] = useState({
@@ -16,17 +18,22 @@ export default function Profile() {
         profile_image: null,
     })
     const [newProfileImage, setNewProfileImage] = useState(null)
+    const [loading, setLoading] = useState(false)
 
     useEffect(() => {
         fetchProfile()
     }, [])
 
     const fetchProfile = async () => {
+        setLoading(true)
         try {
             const response = await axios.get(`${serverUrl}/api/v1/user/get`)
             setProfile(response.data)
         } catch (error) {
+            setError("Failed to fetch profile")
             console.error("Error fetching profile:", error)
+        }finally{
+            setLoading(false)
         }
     }
 
@@ -38,7 +45,7 @@ export default function Profile() {
         if (newProfileImage) {
             formData.append("profile_image", newProfileImage)
         }
-
+        setLoading(true)
         try {
             await axios.patch(`${serverUrl}/api/v1/user/update/`, formData, {
                 headers: {
@@ -48,8 +55,15 @@ export default function Profile() {
             fetchProfile()
             window.location.reload()
         } catch (error) {
+            setError(error.message)
             console.error("Error updating profile:", error)
+        }finally{
+            setLoading(false)
         }
+    }
+
+    if(loading){
+        return <Loader/>
     }
 
     return (
@@ -96,6 +110,9 @@ export default function Profile() {
                     Save Changes
                 </Button>
             </form>
+            <Snackbar open={!!error} autoHideDuration={4000} onClose={() => setError(null)}>
+                <Alert severity="error">{error}</Alert>
+            </Snackbar>
         </Paper>
     )
 }

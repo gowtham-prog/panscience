@@ -26,6 +26,7 @@ import { ArrowBack } from "@mui/icons-material";
 import axios from "axios";
 import DeleteIcon from "@mui/icons-material/Delete";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
+import Loader from "../components/loader";
 
 export default function TaskForm() {
     const serverUrl = import.meta.env.VITE_SERVER_URL;
@@ -52,36 +53,48 @@ export default function TaskForm() {
     }, [id]);
 
     const fetchUsers = async () => {
+        setLoading(true);
         try {
             const response = await axios.get(`${serverUrl}/api/v1/user/list`);
             setUsers(response.data);
         } catch (error) {
             console.error("Error fetching users:", error);
+        }finally{
+            setLoading(false);
         }
     };
 
     const fetchTask = async () => {
+        setLoading(true);
         try {
             const response = await axios.get(`${serverUrl}/api/v1/task_detail/${id}/`);
             setTask(response.data);
         } catch (error) {
             console.error("Error fetching task:", error);
+        }finally{
+            setLoading(false);
         }
     };
 
     const handleFileChange = (event) => {
-        const newFiles = Array.from(event.target.files);
-
-        if (newFiles.length + task.task_files.length > 3) {
+        const files = Array.from(event.target.files);
+        
+        if (files.length + task.task_files.length > 3) {
             setError("You can upload a maximum of 3 files.");
             return;
         }
-
+    
+        // ✅ Ensure only valid File objects are stored
         setTask((prev) => ({
             ...prev,
-            task_files: [...prev.task_files, ...newFiles]
+            task_files: [...prev.task_files, ...files], 
         }));
+    
+        setFilePreviews([...filePreviews, ...files.map(file => URL.createObjectURL(file))]);
+    
+        console.log("📂 Files selected:", files);
     };
+    
 
     const handleRemoveFile = (index) => {
         setTask((prev) => ({
@@ -93,19 +106,20 @@ export default function TaskForm() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-
+        setUploadProgress(0);
+    
         if (!task.task_name.trim()) {
             setError("Task title is required.");
             setLoading(false);
             return;
         }
-
+    
         if (!task.due_date) {
             setError("Due date is required.");
             setLoading(false);
             return;
         }
-
+    
         try {
             const formData = new FormData();
             formData.append("task_name", task.task_name);
@@ -113,37 +127,53 @@ export default function TaskForm() {
             formData.append("status", task.status);
             formData.append("due_date", task.due_date);
             formData.append("priority", task.priority);
-            task.assigned_to.forEach(userId => formData.append("assigned_to", userId));
-            formData.append("task_files", JSON.stringify(task.task_files));
-            task.task_files.forEach(file => formData.append("task_files[]", file));
-
-
+            formData.append("assigned_to", task.assigned_to);
+    
+            // ✅ Ensure files are properly appended
+            if (task.task_files.length > 0) {
+                task.task_files.forEach((file, index) => {
+                    formData.append("task_files", file); 
+                });
+            }
+    
+            // ✅ Debug: Check what’s being sent
+            console.log("📝 FormData content:");
+            for (let pair of formData.entries()) {
+                console.log(pair[0], pair[1]);
+            }
+    
             const config = {
                 headers: { "Content-Type": "multipart/form-data" },
                 onUploadProgress: (progressEvent) => {
                     if (progressEvent.total) {
                         const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                        console.log(`📤 Upload Progress: ${progress}%`);
                         setUploadProgress(progress);
                     }
                 },
             };
-
-            console.log("formData", formData)
-
+    
+            let response;
             if (id) {
-                await axios.put(`${serverUrl}/api/v1/task_detail/${id}/`, formData, config);
+                response = await axios.put(`${serverUrl}/api/v1/task_detail/${id}/`, formData, config);
             } else {
-                await axios.post(`${serverUrl}/api/v1/task`, formData, config);
+                response = await axios.post(`${serverUrl}/api/v1/task/`, formData, config);
             }
-
+    
+            console.log("✅ Task created/updated successfully:", response.data);
             navigate("/");
         } catch (error) {
-            console.error("Error saving task:", error);
+            console.error("❌ Error saving task:", error);
             setError("Failed to save task. Please try again.");
         } finally {
             setLoading(false);
         }
     };
+    
+
+    if(loading){
+        return <Loader/>
+    }
 
     return (
         <>
@@ -236,7 +266,7 @@ export default function TaskForm() {
                         <List>
                             {task.task_files.map((file, index) => (
                                 <ListItem key={index}>
-                                    <ListItemText primary={file.name} secondary={file.type} />
+                                    <ListItemText primary={file.file ? file.file : file.name} secondary={file.uploaded_on} />
                                     <ListItemSecondaryAction>
                                         <IconButton edge="end" onClick={() => handleRemoveFile(index)}>
                                             <DeleteIcon />
