@@ -61,12 +61,6 @@ class Task(TenDigitPK):
     priority = models.CharField(max_length=20, null=False, blank=False, default="low", choices=(
         ("low", "Low"), ("medium", "Medium"), ("high", "High")))
     created_on = models.DateTimeField(auto_now_add=True)
-    task_files = models.ManyToManyField(
-            "TaskFile",
-            related_name="tasks",
-            blank=True,
-            help_text="Upload up to 3 files related to the task"
-        )
 
     def __str__(self):
         return f"{self.task_name} by {self.created_by} on {self.created_on}"

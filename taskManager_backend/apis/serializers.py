@@ -22,7 +22,7 @@ class TaskFileSerializer(serializers.ModelSerializer):
         fields = ("id", "file", "uploaded_on")
 
 class TaskSerializer(serializers.ModelSerializer):
-    task_files = TaskFileSerializer(many=True, read_only=True)
+    task_files = TaskFileSerializer(source='files', many=True, read_only=True)
 
     class Meta:
         model = Task
@@ -32,6 +32,6 @@ class TaskSerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
         data['created_by'] = UserSerializer(instance.created_by, many=False, allow_null=True, required=False).data
         data['assigned_to'] = UserSerializer(instance.assigned_to, many=True, allow_null=True, required=False).data
-        data["task_files"] = TaskFileSerializer(instance.task_files, many=True).data
+        data["task_files"] = TaskFileSerializer(instance.files, many=True).data
         return data
 

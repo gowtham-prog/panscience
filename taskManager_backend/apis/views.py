@@ -89,19 +89,26 @@ class TaskCreateAPIView(CreateAPIView):
     serializer_class = TaskSerializer
     parser_classes = [MultiPartParser, FormParser]
 
-    def perform_create(self, serializer):
-        task = serializer.save(created_by=self.request.user)
-
-        uploaded_files = self.request.FILES.getlist("task_files")
+    def create(self, request, *args, **kwargs):
+        uploaded_files = request.FILES.getlist('task_files')
         if len(uploaded_files) > 3:
-            return Response({"error": "You can upload a maximum of 3 files per task."}, status=status.HTTP_400_BAD_REQUEST)
-
-        for file in uploaded_files:
-            TaskFile.objects.create(task_id=task.id, file=file)  # Ensure task is correctly linked
-
-        return Response(TaskSerializer(task).data, status=status.HTTP_201_CREATED)
-
+            return Response(
+                {"error": "You can upload a maximum of 3 files per task."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        task = serializer.save(created_by=self.request.user)
+        
+        # Handle file uploads
+        for file in uploaded_files:
+            TaskFile.objects.create(task=task, file=file)
+        
+        # Refresh the serializer to include the files
+        serializer = self.get_serializer(task)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 class TaskListAPIView(ListAPIView):
     # permission_classes = [ IsAuthenticated, ]
     serializer_class = TaskSerializer
@@ -135,21 +142,27 @@ class TaskRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
         if request.user != task.created_by and request.user not in task.assigned_to.all():
             return Response({"message": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
 
+        uploaded_files = request.FILES.getlist("task_files")
+
+        if len(uploaded_files) > 3:
+            return Response({"error": "You can upload a maximum of 3 files per task."}, status=status.HTTP_400_BAD_REQUEST)
+
         serializer = self.get_serializer(task, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
+        serializer.is_valid(raise_exception=True)
+        task = serializer.save()
 
-            uploaded_files = request.FILES.getlist("task_files")
-            if len(uploaded_files) > 3:
-                return Response({"error": "Max 3 files allowed per task."}, status=status.HTTP_400_BAD_REQUEST)
-
+        # Handle file uploads
+        if uploaded_files:
+            # Remove old files
+            task.files.all().delete()
+            # Add new files
             for file in uploaded_files:
-                TaskFile.objects.create(task_id=task.id, file=file)  # Ensure correct linkage
+                TaskFile.objects.create(task=task, file=file)
 
-            return Response(serializer.data, status=status.HTTP_200_OK)
+        # Refresh the serializer to include the updated files
+        serializer = self.get_serializer(task)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
     def perform_destroy(self, instance):
         if self.request.user == self.get_object().created_by or self.request.user in self.get_object().assigned_to.all():
             return instance.delete()
