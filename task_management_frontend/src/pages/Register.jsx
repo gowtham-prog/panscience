@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { TextField, Button, Paper, Typography, Link, Avatar,Snackbar,Alert } from "@mui/material";

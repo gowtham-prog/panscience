@@ -1,3 +1,4 @@
+import React from "react"
 export default function Loader() {
     return (
         <div className="fixed inset-0 flex items-center justify-center h-screen w-screen bg-black bg-opacity-50">

@@ -1,4 +1,3 @@
-"use client"
 
 import { Button, Link, Paper, TextField, Typography,Snackbar,Alert } from "@mui/material"
 // import Alert from '@mui/material/Alert'
@@ -8,6 +7,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { loginUser } from "../store/AuthSlice"
 import { useNavigate,Link as RouterLink } from "react-router-dom";
 import Loader from "../components/loader";
+import React from "react";
+
 
 const Login = () => {
     const [credentials, setCredentials] = useState({ username: "", password: "" });

@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -30,6 +28,8 @@ import Loader from "../components/loader";
 
 export default function TaskForm() {
     const serverUrl = import.meta.env.VITE_SERVER_URL;
+
+    const [filePreviews, setFilePreviews] = useState([]);
 
     const { id } = useParams();
     const navigate = useNavigate();
@@ -84,16 +84,14 @@ export default function TaskForm() {
             return;
         }
     
-        // ✅ Ensure only valid File objects are stored
         setTask((prev) => ({
             ...prev,
-            task_files: [...prev.task_files, ...files], 
+            task_files: [...prev.task_files, ...files],
         }));
     
-        setFilePreviews([...filePreviews, ...files.map(file => URL.createObjectURL(file))]);
-    
-        console.log("📂 Files selected:", files);
+        setFilePreviews((prev) => [...prev, ...files.map(file => URL.createObjectURL(file))]);
     };
+    
     
 
     const handleRemoveFile = (index) => {
@@ -127,27 +125,27 @@ export default function TaskForm() {
             formData.append("status", task.status);
             formData.append("due_date", task.due_date);
             formData.append("priority", task.priority);
-            formData.append("assigned_to", task.assigned_to);
-    
-            // ✅ Ensure files are properly appended
-            if (task.task_files.length > 0) {
-                task.task_files.forEach((file, index) => {
-                    formData.append("task_files", file); 
-                });
-            }
-    
-            // ✅ Debug: Check what’s being sent
-            console.log("📝 FormData content:");
+
+            task.assigned_to.forEach(user => {
+                console.log(user.id)
+                formData.append("assigned_to", user.id);
+            });
+
+            // Append multiple files correctly
+            task.task_files.forEach((file) => {
+                formData.append("task_files", file); // Each file gets its own key-value pair
+            });
+
+            console.log("FormData content:");
             for (let pair of formData.entries()) {
                 console.log(pair[0], pair[1]);
             }
-    
             const config = {
                 headers: { "Content-Type": "multipart/form-data" },
                 onUploadProgress: (progressEvent) => {
                     if (progressEvent.total) {
                         const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-                        console.log(`📤 Upload Progress: ${progress}%`);
+                        console.log(`Upload Progress: ${progress}%`);
                         setUploadProgress(progress);
                     }
                 },
@@ -157,14 +155,15 @@ export default function TaskForm() {
             if (id) {
                 response = await axios.put(`${serverUrl}/api/v1/task_detail/${id}/`, formData, config);
             } else {
-                response = await axios.post(`${serverUrl}/api/v1/task/`, formData, config);
+                response = await axios.post(`${serverUrl}/api/v1/task`, formData, config);
             }
     
-            console.log("✅ Task created/updated successfully:", response.data);
+            console.log("Task created/updated successfully:", response.data);
             navigate("/");
         } catch (error) {
-            console.error("❌ Error saving task:", error);
-            setError("Failed to save task. Please try again.");
+            console.error("Error saving task:", error);
+            const errorMessage = error.response?.data?.error || "Failed to save task. Please try again.";
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -246,16 +245,17 @@ export default function TaskForm() {
                         />
                     </Grid>
 
-                    <Grid item xs={12}>
-                        <Autocomplete
-                            multiple
-                            options={users}
-                            getOptionLabel={(option) => `${option.username} (${option.email})`}
-                            value={users.filter(user => task.assigned_to.includes(user.id))}
-                            onChange={(_, newValue) => setTask({ ...task, assigned_to: newValue.map(user => user.id) })}
-                            renderInput={(params) => <TextField {...params} label="Assigned To" variant="outlined" fullWidth />}
-                        />
-                    </Grid>
+                        <Grid item xs={12}>
+                            <Autocomplete
+                                multiple
+                                options={users}
+                                getOptionLabel={(option) => `${option.username} (${option.email})`}
+                                value={task.assigned_to}
+                                onChange={(_, newValue) => setTask({ ...task, assigned_to: newValue })}
+                                renderInput={(params) => <TextField {...params} label="Assigned To" variant="outlined" fullWidth />}
+                            />
+                        </Grid>
+
 
                     <Grid item xs={12}>
                         <Typography variant="subtitle1">Upload Files (Max: 3)</Typography>
